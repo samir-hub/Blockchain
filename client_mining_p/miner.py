@@ -36,7 +36,8 @@ def valid_proof(block_string, proof):
     guess = f'{block_string}{proof}'.encode()
     guess_hash = hashlib.sha256(guess).hexdigest()
 
-    return guess_hash[:1] == "0"
+    return guess_hash[:3] == "000"
+
 
 
 if __name__ == '__main__':
@@ -53,6 +54,7 @@ if __name__ == '__main__':
     f.close()
 
     # Run forever until interrupted
+    coins = 0
     while True:
         r = requests.get(url=node + "/last_block")
         # Handle non-json response
@@ -66,11 +68,11 @@ if __name__ == '__main__':
 
         # TODO: Get the block from `data` and use it to look for a new proof
         # new_proof = ???
-        new_proof = proof_of_work(data["block"])
         print("Now mining....")
+        new_proof = proof_of_work(data["block"])
 
         # When found, POST it to the server {"proof": new_proof, "id": id}
-        post_data = {"proof": new_proof}
+        post_data = {"proof": new_proof, "id": id}
 
         r = requests.post(url=node + "/mine", json=post_data)
         data = r.json()
@@ -79,6 +81,8 @@ if __name__ == '__main__':
         # add 1 to the number of coins mined and print it.  Otherwise,
         # print the message from the server.
         if data["message"] == "success":
-            print("You got a Lambda Coin!")
+            coins += 1
+            print(f"You got a Lambda Coin!")
+            print(f"{id} has {coins} SamirCoins")
         elif data["message"] == "failure":
             print("fail")        
