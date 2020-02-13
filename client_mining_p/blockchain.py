@@ -3,7 +3,7 @@ import json
 from time import time
 from uuid import uuid4
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, abort
 
 
 class Blockchain(object):
@@ -82,22 +82,6 @@ class Blockchain(object):
     def last_block(self):
         return self.chain[-1]
 
-    def proof_of_work(self, block):
-        """
-        Simple Proof of Work Algorithm
-        Stringify the block and look for a proof.
-        Loop through possibilities, checking each one against `valid_proof`
-        in an effort to find a number that is a valid proof
-        :return: A valid proof for the provided block
-        """
-        
-        block_string = json.dumps(block, sort_keys=True)
-        proof = 0
-        while self.valid_proof(block_string, proof) is False:
-            proof += 1
-
-        return proof
-
     @staticmethod
     def valid_proof(block_string, proof):
         """
@@ -113,7 +97,7 @@ class Blockchain(object):
         guess = f'{block_string}{proof}'.encode()
         guess_hash = hashlib.sha256(guess).hexdigest()
 
-        return guess_hash[:3] == "000"
+        return guess_hash[:1] == "0"
 
 
 # Instantiate our Node
@@ -128,21 +112,38 @@ print(blockchain.chain)
 print(blockchain.hash(blockchain.last_block))
 
 
-@app.route('/mine', methods=['GET'])
+@app.route('/mine', methods=['POST'])
 def mine():
-    # Run the proof of work algorithm to get the next proof
-    proof = blockchain.proof_of_work(blockchain.last_block)
+    # Receive a proof from the client app
+    #proof = blockchain.proof_of_work(blockchain.last_block)
+    data = request.get_json(force=True)
 
     # Forge the new Block by adding it to the chain with the proof
-    previous_hash = blockchain.hash(blockchain.last_block)
-    new_block = blockchain.new_block(proof, previous_hash)
+    # previous_hash = blockchain.hash(blockchain.last_block)
+    # new_block = blockchain.new_block(proof, previous_hash)
+    my_proof = data["proof"]
+    my_id = data["id"]
 
-    response = {
-        # TODO: Send a JSON response with the new block
-        "block": new_block
-    }
 
-    return jsonify(response), 200
+
+    last_block = json.dumps(blockchain.last_block, sort_keys=True)
+
+    if my_proof and my_id:
+        if blockchain.valid_proof(last_block, my_proof):
+            response = {
+                # TODO: Send a JSON response with the new block
+                "message": "success"
+            }
+            return jsonify(response), 200
+        else: 
+            response = {
+                # TODO: Send a JSON response with the new block
+                "message": "failure"
+            }
+            return jsonify(response), 200   
+    else: 
+        return "Fail", 400             
+
 
 
 @app.route('/chain', methods=['GET'])
