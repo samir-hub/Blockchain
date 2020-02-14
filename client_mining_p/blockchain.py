@@ -114,37 +114,30 @@ print(blockchain.hash(blockchain.last_block))
 
 @app.route('/mine', methods=['POST'])
 def mine():
-    # Receive a proof from the client app
-    #proof = blockchain.proof_of_work(blockchain.last_block)
-    data = request.get_json(force=True)
+    data = request.get_json()
+    # Run the proof of work algorithm to get the next proof
+    proof = data['proof']
 
-    # Forge the new Block by adding it to the chain with the proof
-    # previous_hash = blockchain.hash(blockchain.last_block)
-    # new_block = blockchain.new_block(proof, previous_hash)
-    my_proof = data["proof"]
-    my_id = data["id"]
+    last_block = blockchain.last_block
+    last_block_string = json.dumps(last_block, sort_keys=True)
 
+    if blockchain.valid_proof(last_block_string, proof):
+        # Forge the new Block by adding it to the chain with the proof
+        previous_hash = blockchain.hash(blockchain.last_block)
+        new_block = blockchain.new_block(proof, previous_hash)
 
+        response = {
+            # TODO: Send a JSON response with the new block
+            "block": new_block
+        }
 
-    last_block = json.dumps(blockchain.last_block, sort_keys=True)
+        return jsonify(response), 200            
 
-    if my_proof and my_id:
-        if blockchain.valid_proof(last_block, my_proof):
-            response = {
-                # TODO: Send a JSON response with the new block
-                "message": "success"
-            }
-            return jsonify(response), 200
-        else: 
-            response = {
-                # TODO: Send a JSON response with the new block
-                "message": "failure"
-            }
-            return jsonify(response), 200   
     else: 
-        return "Fail", 400             
-
-
+        response = {
+            "message": "failure"
+        }
+        return jsonify(response), 400
 
 @app.route('/chain', methods=['GET'])
 def full_chain():
